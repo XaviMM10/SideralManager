@@ -1,0 +1,30 @@
+SCHEMA
+Table 1: Client
+	-id: integer
+	-name: string
+	-address: string
+
+Table 2: Job
+	-id: integer
+	-client_id: integer
+	-title: string
+	-description: string
+	-status: string
+
+Table 3: SupplyEntry
+	-id: integer
+	-job_id: integer
+	-supplier: string
+	-reference: string
+	-total_amount: float
+	-date: date
+
+Table 4: WorkEntry
+	-id: integer
+	-job_id: integer
+	-date: date
+	-num_workers: integer
+	-hours_per_worker: float
+	-title: string
+	-description: string
+	-location: string

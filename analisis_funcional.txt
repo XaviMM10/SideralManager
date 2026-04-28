@@ -1,0 +1,27 @@
+ANÁLISIS FUNCIONAL
+
+Tabla: jobs
+
+- get: /jobs				Get all jobs |V|
+- get: /jobs/{client_name}		Filter through clients |V|
+- get: /jobs/{title}			Filter through title words |V|
+- get: /jobs/{status}			Filter through status (Active/Finished) |V| 
+- get: /jobs/{work_entry_date}		Filter through dates of all work entries |V|
+- get: /jobs/{work_entry_location}	Filter through location of all work entries |V| 
+- get: /jobs/{supply_entry_supplier}	Filter through supplier of all supply entries |V|
+
+- post: /jobs/create	Create new job
+- patch: /jobs/update	Edit existing jobs
+- delete: /jobs/kill	Delete existing jobs
+
+Tabla:	clients
+
+- get: /clients
+- get: /clients/{name}			Filter through names
+- get: /clients/{address}		Filter through address
+
+- post: /clients/create			Create new client
+- patch: /clients/update		Edit existing client
+- delete: /clients/kill			Delete existing client
+
+
