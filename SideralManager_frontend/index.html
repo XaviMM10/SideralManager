@@ -1,0 +1,138 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Sideral Manager</title>
+    <meta
+      name="description"
+      content="Static dashboard frontend for the Sideral Manager FastAPI backend."
+    />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div id="login-view" class="login-shell" aria-live="polite">
+      <form id="login-form" class="login-card">
+        <div class="brand-mark">SM</div>
+        <h1>Sideral Manager</h1>
+        <p class="muted">Enter the app password to open the dashboard.</p>
+
+        <label for="password-input">Password</label>
+        <input
+          id="password-input"
+          type="password"
+          autocomplete="current-password"
+          placeholder="Enter password"
+          required
+        />
+        <p id="login-error" class="form-error" role="alert"></p>
+        <button type="submit" class="button button-primary full-width">Unlock app</button>
+      </form>
+    </div>
+
+    <div id="app-view" class="app-shell hidden">
+      <header class="app-header">
+        <div>
+          <p class="eyebrow">Internal dashboard</p>
+          <h1>Sideral Manager</h1>
+        </div>
+        <div class="header-actions">
+          <button id="refresh-button" class="button button-secondary" type="button">Refresh</button>
+          <button id="logout-button" class="button button-danger" type="button">Logout</button>
+        </div>
+      </header>
+
+      <main>
+        <div id="global-error" class="alert hidden" role="alert"></div>
+
+        <section class="dashboard-grid" aria-label="Sideral Manager dashboard">
+          <article class="panel" aria-labelledby="clients-heading">
+            <div class="panel-header">
+              <div>
+                <p class="eyebrow">Step 1</p>
+                <h2 id="clients-heading">Clients</h2>
+              </div>
+              <span id="clients-count" class="pill">0</span>
+            </div>
+
+            <form id="client-form" class="compact-form">
+              <input name="name" placeholder="Client name" required />
+              <input name="address" placeholder="Address optional" />
+              <button class="button button-primary" type="submit">Add client</button>
+            </form>
+
+            <div id="clients-status" class="status-text"></div>
+            <div id="clients-list" class="item-list"></div>
+          </article>
+
+          <article class="panel" aria-labelledby="jobs-heading">
+            <div class="panel-header">
+              <div>
+                <p class="eyebrow">Step 2</p>
+                <h2 id="jobs-heading">Jobs</h2>
+              </div>
+              <span id="jobs-count" class="pill">0</span>
+            </div>
+
+            <form id="job-form" class="compact-form disabled-section">
+              <input name="title" placeholder="Job title" required />
+              <textarea name="description" placeholder="Description optional" rows="2"></textarea>
+              <input name="status" placeholder="Status" required />
+              <button class="button button-primary" type="submit">Add job</button>
+            </form>
+
+            <div id="jobs-status" class="status-text">Select a client to see jobs.</div>
+            <div id="jobs-list" class="item-list"></div>
+          </article>
+
+          <article class="panel details-panel" aria-labelledby="entries-heading">
+            <div class="panel-header">
+              <div>
+                <p class="eyebrow">Step 3</p>
+                <h2 id="entries-heading">Entries</h2>
+              </div>
+            </div>
+
+            <section id="job-details" class="detail-card empty-state">
+              Select a job to see details, work entries, and supply entries.
+            </section>
+
+            <section class="entry-section">
+              <div class="section-heading">
+                <h3>Work entries</h3>
+              </div>
+              <form id="work-entry-form" class="compact-form two-column disabled-section">
+                <input name="date" type="date" required />
+                <input name="title" placeholder="Title" required />
+                <input name="num_workers" type="number" min="0" step="1" placeholder="Workers" />
+                <input name="hours_per_worker" type="number" min="0" step="0.25" placeholder="Hours / worker" />
+                <input name="location" placeholder="Location" />
+                <textarea name="description" placeholder="Description optional" rows="2"></textarea>
+                <button class="button button-primary" type="submit">Add work</button>
+              </form>
+              <div id="work-status" class="status-text"></div>
+              <div id="work-entries" class="table-wrap"></div>
+            </section>
+
+            <section class="entry-section">
+              <div class="section-heading">
+                <h3>Supply entries</h3>
+              </div>
+              <form id="supply-entry-form" class="compact-form two-column disabled-section">
+                <input name="date" type="date" required />
+                <input name="supplier" placeholder="Supplier" required />
+                <input name="reference" placeholder="Reference" />
+                <input name="total_amount" type="number" min="0" step="0.01" placeholder="Total amount" />
+                <button class="button button-primary" type="submit">Add supply</button>
+              </form>
+              <div id="supply-status" class="status-text"></div>
+              <div id="supply-entries" class="table-wrap"></div>
+            </section>
+          </article>
+        </section>
+      </main>
+    </div>
+
+    <script src="app.js" defer></script>
+  </body>
+</html>
