@@ -4,7 +4,7 @@ from sqlalchemy.orm import sessionmaker, DeclarativeBase
 
 DATABASE_URL = os.getenv(
     "DATABASE_URL",
-    "postgresql+psycopg://office_user:0000@localhost:5432/office_db"
+    "postgresql://office_user:0000@localhost:5432/office_db"
 )
 
 engine = create_engine(DATABASE_URL)
@@ -17,3 +17,11 @@ SessionLocal = sessionmaker(
 
 class Base(DeclarativeBase):
     pass
+
+
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
