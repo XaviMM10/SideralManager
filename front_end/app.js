@@ -1,5 +1,5 @@
-const API_BASE_URL = "https://sideral-manager.vercel.app";
-const APP_PASSWORD = "change-me";
+const API_BASE_URL = "";
+const APP_PASSWORD = "Sideral2007SL";
 
 // El usuario ve texto, pero el backend recibe integers.
 // Estos IDs deben coincidir con statuses.id en la base de datos.

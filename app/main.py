@@ -1,3 +1,7 @@
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
+from pathlib import Path
+
 from fastapi import Depends, FastAPI, HTTPException
 from sqlalchemy.orm import Session
 
@@ -9,13 +13,22 @@ from datetime import date
 
 app = FastAPI()
 
+BASE_DIR = Path(__file__).resolve().parent.parent
+FRONTEND_DIR = BASE_DIR / "front_end"
+
+app.mount(
+    "/static",
+    StaticFiles(directory=FRONTEND_DIR),
+    name="static",
+)
+
 @app.on_event("startup")
 def on_startup() -> None:
     Base.metadata.create_all(bind=engine) #look at model classes, generate the SQL tables, send them to PostgreSQL 
 
 @app.get("/")
 def read_root():
-    return {"message": "Office manager is running"}
+    return FileResponse(FRONTEND_DIR / "index.html")
 
 @app.get("/clients") #This function finds all clients like SELECT * FROM clients;
 def get_clients(db: Session = Depends(get_db)): #Depends(get_db) calls get_db and provides the database session to the function
