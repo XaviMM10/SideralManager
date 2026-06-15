@@ -3,8 +3,8 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, DeclarativeBase
 
 DATABASE_URL = os.getenv(
-    "postgresql://postgres.wsfqihjwairfzzvglyuy:securPasword5@aws-1-eu-central-2.pooler.supabase.com:6543/postgres",
-    "postgresql+psycopg://office_user:0000@localhost/office_db"
+    "DATABASE_URL",
+    "postgresql+psycopg://office_user:0000@localhost:5432/office_db"
 )
 
 engine = create_engine(DATABASE_URL)
