@@ -12,7 +12,7 @@ class StatusOptions(Base):
     id: Mapped[int] = mapped_column(BigInteger, primary_key = True)
     option: Mapped[str] = mapped_column(String(255), nullable = False)
 
-    jobs: Mapped[list["Job"]] = relationship(back_populates =  'statuses')
+    jobs: Mapped[list["Job"]] = relationship(back_populates =  'status_option')
 
 class CompletionOptions(Base):
     __tablename__='completions'
@@ -20,7 +20,7 @@ class CompletionOptions(Base):
     id: Mapped[int] = mapped_column(BigInteger, primary_key = True)
     option: Mapped[str] = mapped_column(String(255), nullable = False)
 
-    work_entries: Mapped[list["SupplyEntry"]] = relationship(back_populates =  'completions')
+    supply_entries: Mapped[list["SupplyEntry"]] = relationship(back_populates =  'completion_option')
 
 class Client(Base):
     __tablename__='clients'
@@ -43,7 +43,7 @@ class Job(Base):
     client: Mapped["Client"] = relationship(back_populates='jobs')
     supply_entries: Mapped[list["SupplyEntry"]] = relationship(back_populates="job")
     work_entries: Mapped[list["WorkEntry"]] = relationship(back_populates="job")
-    completions: Mapped["CompletionOptions"] = relationship(back_populates='supply_entries')
+    status_option: Mapped["StatusOptions"] = relationship(back_populates='jobs')
     
 
 class SupplyEntry(Base): 
@@ -60,7 +60,7 @@ class SupplyEntry(Base):
     
 
     job: Mapped["Job"] = relationship(back_populates='supply_entries')
-    statuses: Mapped[list["StatusOptions"]] = relationship(back_populates="job")
+    completion_option: Mapped["CompletionOptions"] = relationship(back_populates="supply_entries")
     
 
 class WorkEntry(Base):

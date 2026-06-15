@@ -170,7 +170,7 @@ def get_jobs_by_work_entry_date(work_entry_date: date, db:Session = Depends(get_
 
 #- get: /jobs/{status}			Filter through status (Active/Finished) || 
 @app.get("/jobs/by-status/{status}")
-def get_jobs_by_status(status: str, db:Session = Depends(get_db)):
+def get_jobs_by_status(status: int, db:Session = Depends(get_db)):
     jobs = (
         db.query(models.Job)
         .filter(models.Job.status == status)
@@ -250,6 +250,11 @@ def create_job(job_data: schemas.JobCreate, db: Session = Depends(get_db)):
     if client is None:
         raise HTTPException(status_code=404, detail="Client not found")
 
+    status = db.query(models.StatusOptions).filter(models.StatusOptions.id == job_data.status).first()
+
+    if status is None:
+        raise HTTPException(status_code=404, detail="Status option not found")
+
     job = models.Job(
         client_id=job_data.client_id,
         title=job_data.title,
@@ -295,6 +300,11 @@ def update_job(
         job.description = job_data.description
     
     if job_data.status is not None:
+        status = db.query(models.StatusOptions).filter(models.StatusOptions.id == job_data.status).first()
+
+        if status is None:
+            raise HTTPException(status_code=404, detail="Status option not found")
+
         job.status = job_data.status
     
     db.commit()
@@ -423,12 +433,19 @@ def create_supply_entry(supply_entry_data: schemas.SupplyEntryCreate, db: Sessio
     if job is None:
         raise HTTPException(status_code=404, detail="Job not found")
 
+    completion = db.query(models.CompletionOptions).filter(models.CompletionOptions.id == supply_entry_data.completion).first()
+
+    if completion is None:
+        raise HTTPException(status_code=404, detail="Completion option not found")
+
     supply_entry = models.SupplyEntry(
         job_id = supply_entry_data.job_id,
         supplier = supply_entry_data.supplier,
         reference = supply_entry_data.reference,
         total_amount = supply_entry_data.total_amount,
         date = supply_entry_data.date,
+        completion = supply_entry_data.completion,
+        description = supply_entry_data.description,
     )
 
     db.add(supply_entry)
@@ -439,8 +456,11 @@ def create_supply_entry(supply_entry_data: schemas.SupplyEntryCreate, db: Sessio
         "id": supply_entry.id,
         "job_id": supply_entry.job_id,
         "supplier": supply_entry_data.supplier,
+        "reference": supply_entry.reference,
         "total_amount": supply_entry_data.total_amount,
         "date" : supply_entry_data.date,
+        "completion": supply_entry.completion,
+        "description": supply_entry.description,
     }
 
 @app.patch("/supply-entries/{supply_entry_id}")
@@ -471,6 +491,20 @@ def update_supply_entry(
     if supply_entry_data.date is not None:
         supply_entry.date = supply_entry_data.date
 
+    if supply_entry_data.reference is not None:
+        supply_entry.reference = supply_entry_data.reference
+    
+    if supply_entry_data.completion is not None:
+        completion = db.query(models.CompletionOptions).filter(models.CompletionOptions.id == supply_entry_data.completion).first()
+
+        if completion is None:
+            raise HTTPException(status_code=404, detail="Completion option not found")
+
+        supply_entry.completion = supply_entry_data.completion
+
+    if supply_entry_data.description is not None:
+        supply_entry.description = supply_entry_data.description
+
     db.commit()
     db.refresh(supply_entry)
 
@@ -478,8 +512,11 @@ def update_supply_entry(
         "id": supply_entry.id,
         "job_id": supply_entry.job_id,
         "supplier": supply_entry_data.supplier,
+        "reference": supply_entry.reference,
         "total_amount": supply_entry_data.total_amount,
         "date" : supply_entry_data.date,
+        "completion": supply_entry.completion,
+        "description": supply_entry.description,
     }
 
 @app.delete("/supply-entries/{supply_entry_id}")
@@ -501,12 +538,10 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=[
         "http://localhost:3000",
-        "http://localhost:5173",
-        "http://127.0.0.1:5500",
-        "http://localhost:5500",
-        "https://*.vercel.app",
+        "http://127.0.0.1:3000",
+        "https://sideral-manager.vercel.app",
+        "https://sideral-manager-jvt2vljz6-xavimm10s-projects.vercel.app",
     ],
-    allow_origin_regex=r"https://.*\.vercel\.app",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -546,6 +581,8 @@ def get_supply_entries(job_id: int | None = None, db: Session = Depends(get_db))
             "reference": entry.reference,
             "total_amount": entry.total_amount,
             "date": entry.date,
+            "completion": entry.completion,
+            "description": entry.description,
         }
         for entry in supply_entries
     ]

@@ -1,5 +1,32 @@
-const API_BASE_URL = "http://localhost:8000";
+const API_BASE_URL = "https://sideral-manager.vercel.app";
 const APP_PASSWORD = "change-me";
+
+// El usuario ve texto, pero el backend recibe integers.
+// Estos IDs deben coincidir con statuses.id en la base de datos.
+const JOB_STATUS_OPTIONS = [
+  { id: 1, label: "Activo" },
+  { id: 2, label: "Pendiente" },
+  { id: 3, label: "Finalizado" },
+  { id: 4, label: "Cancelado" },
+];
+
+const JOB_STATUS_LABELS = Object.fromEntries(
+  JOB_STATUS_OPTIONS.map((option) => [String(option.id), option.label]),
+);
+
+// Estos IDs deben coincidir con completions.id en la base de datos.
+const COMPLETION_OPTIONS = [
+  { id: 1, label: "Pedido" },
+  { id: 2, label: "Cobrado" },
+  { id: 3, label: "Recibido" },
+  { id: 4, label: "Facturado" },
+  { id: 5, label: "Pendiente" },
+  { id: 6, label: "Cancelado" },
+];
+
+const COMPLETION_LABELS = Object.fromEntries(
+  COMPLETION_OPTIONS.map((option) => [String(option.id), option.label]),
+);
 
 const SESSION_KEY = "sideral-manager-unlocked";
 
@@ -93,6 +120,40 @@ function normalizeNumber(value) {
   return Number.isNaN(numeric) ? null : numeric;
 }
 
+function jobStatusLabel(value) {
+  if (value === null || value === undefined || value === "") return "—";
+  return JOB_STATUS_LABELS[String(value)] || String(value);
+}
+
+function renderJobStatusOptions() {
+  const select = el.jobForm?.querySelector('[name="status"]');
+  if (!select) return;
+
+  select.innerHTML = [
+    '<option value="">Estado</option>',
+    ...JOB_STATUS_OPTIONS.map(
+      (option) => `<option value="${option.id}">${escapeHtml(option.label)}</option>`,
+    ),
+  ].join("");
+}
+
+function completionLabel(value) {
+  if (value === null || value === undefined || value === "") return "—";
+  return COMPLETION_LABELS[String(value)] || String(value);
+}
+
+function renderCompletionOptions() {
+  const select = el.supplyEntryForm?.querySelector('[name="completion"]');
+  if (!select) return;
+
+  select.innerHTML = [
+    '<option value="">Estado de suministro</option>',
+    ...COMPLETION_OPTIONS.map(
+      (option) => `<option value="${option.id}">${escapeHtml(option.label)}</option>`,
+    ),
+  ].join("");
+}
+
 async function api(path, options = {}) {
   const response = await fetch(`${API_BASE_URL}${path}`, {
     headers: {
@@ -109,7 +170,7 @@ async function api(path, options = {}) {
   }
 
   if (!response.ok) {
-    const message = payload?.detail || payload?.message || `Request failed: ${response.status}`;
+    const message = payload?.detail || payload?.message || `Error en la petición: ${response.status}`;
     throw new Error(Array.isArray(message) ? message.map((item) => item.msg).join(", ") : message);
   }
 
@@ -118,7 +179,7 @@ async function api(path, options = {}) {
 
 async function loadInitialData() {
   setGlobalError("");
-  setStatus(el.clientsStatus, "Loading clients...");
+  setStatus(el.clientsStatus, "Cargando clientes...");
   state.selectedClientId = null;
   state.selectedJobId = null;
   state.jobs = [];
@@ -128,11 +189,11 @@ async function loadInitialData() {
 
   try {
     state.clients = await api("/clients");
-    setStatus(el.clientsStatus, state.clients.length ? "" : "No clients yet. Create the first one above.");
+    setStatus(el.clientsStatus, state.clients.length ? "" : "Todavía no hay clientes. Crea el primero arriba.");
     render();
   } catch (error) {
-    setGlobalError(`Could not load clients. ${error.message}`);
-    setStatus(el.clientsStatus, "Unable to load clients.");
+    setGlobalError(`No se pudieron cargar los clientes. ${error.message}`);
+    setStatus(el.clientsStatus, "No se pudieron cargar los clientes.");
   }
 }
 
@@ -143,17 +204,17 @@ async function selectClient(clientId) {
   state.supplyEntries = [];
   state.jobs = [];
   setGlobalError("");
-  setStatus(el.jobsStatus, "Loading jobs...");
+  setStatus(el.jobsStatus, "Cargando trabajos...");
   render();
 
   try {
     const allJobs = await api("/jobs");
     state.jobs = allJobs.filter((job) => Number(job.client_id) === Number(clientId));
-    setStatus(el.jobsStatus, state.jobs.length ? "" : "No jobs for this client yet.");
+    setStatus(el.jobsStatus, state.jobs.length ? "" : "Todavía no hay trabajos para este cliente.");
     render();
   } catch (error) {
-    setGlobalError(`Could not load jobs. ${error.message}`);
-    setStatus(el.jobsStatus, "Unable to load jobs.");
+    setGlobalError(`No se pudieron cargar los trabajos. ${error.message}`);
+    setStatus(el.jobsStatus, "No se pudieron cargar los trabajos.");
   }
 }
 
@@ -162,8 +223,8 @@ async function selectJob(jobId) {
   state.workEntries = [];
   state.supplyEntries = [];
   setGlobalError("");
-  setStatus(el.workStatus, "Loading work entries...");
-  setStatus(el.supplyStatus, "Loading supply entries...");
+  setStatus(el.workStatus, "Cargando partes de trabajo...");
+  setStatus(el.supplyStatus, "Cargando partes de suministros...");
   render();
 
   try {
@@ -173,15 +234,13 @@ async function selectJob(jobId) {
     ]);
     state.workEntries = workEntries;
     state.supplyEntries = supplyEntries;
-    setStatus(el.workStatus, workEntries.length ? "" : "No work entries yet.");
-    setStatus(el.supplyStatus, supplyEntries.length ? "" : "No supply entries yet.");
+    setStatus(el.workStatus, workEntries.length ? "" : "Todavía no hay partes de trabajo.");
+    setStatus(el.supplyStatus, supplyEntries.length ? "" : "Todavía no hay partes de suministros.");
     render();
   } catch (error) {
-    setGlobalError(
-      `Could not load entries. ${error.message} If your backend has not been patched yet, add GET /work-entries and GET /supply-entries with an optional job_id query parameter.`,
-    );
-    setStatus(el.workStatus, "Unable to load work entries.");
-    setStatus(el.supplyStatus, "Unable to load supply entries.");
+    setGlobalError(`No se pudieron cargar los partes. ${error.message}`);
+    setStatus(el.workStatus, "No se pudieron cargar los partes de trabajo.");
+    setStatus(el.supplyStatus, "No se pudieron cargar los partes de suministros.");
   }
 }
 
@@ -196,7 +255,7 @@ async function createClient(event) {
   const name = formData.get("name")?.trim();
   const address = formData.get("address")?.trim() || null;
 
-  if (!name) return setGlobalError("Client name is required.");
+  if (!name) return setGlobalError("El nombre del cliente es obligatorio.");
 
   try {
     await api("/clients", {
@@ -206,21 +265,21 @@ async function createClient(event) {
     el.clientForm.reset();
     await loadInitialData();
   } catch (error) {
-    setGlobalError(`Could not create client. ${error.message}`);
+    setGlobalError(`No se pudo crear el cliente. ${error.message}`);
   }
 }
 
 async function createJob(event) {
   event.preventDefault();
   const client = selectedClient();
-  if (!client) return setGlobalError("Select a client before creating a job.");
+  if (!client) return setGlobalError("Selecciona un cliente antes de crear un trabajo.");
 
   const formData = new FormData(el.jobForm);
   const title = formData.get("title")?.trim();
   const description = formData.get("description")?.trim() || null;
-  const status = formData.get("status")?.trim();
+  const status = normalizeNumber(formData.get("status"));
 
-  if (!title || !status) return setGlobalError("Job title and status are required.");
+  if (!title || status === null) return setGlobalError("El título y el estado del trabajo son obligatorios.");
 
   try {
     await api("/jobs", {
@@ -230,20 +289,20 @@ async function createJob(event) {
     el.jobForm.reset();
     await selectClient(client.id);
   } catch (error) {
-    setGlobalError(`Could not create job. ${error.message}`);
+    setGlobalError(`No se pudo crear el trabajo. ${error.message}`);
   }
 }
 
 async function createWorkEntry(event) {
   event.preventDefault();
   const job = selectedJob();
-  if (!job) return setGlobalError("Select a job before creating a work entry.");
+  if (!job) return setGlobalError("Selecciona un trabajo antes de crear un parte de trabajo.");
 
   const formData = new FormData(el.workEntryForm);
   const date = formData.get("date");
   const title = formData.get("title")?.trim();
 
-  if (!date || !title) return setGlobalError("Work entry date and title are required.");
+  if (!date || !title) return setGlobalError("La fecha y el título del parte de trabajo son obligatorios.");
 
   const payload = {
     job_id: job.id,
@@ -263,27 +322,37 @@ async function createWorkEntry(event) {
     el.workEntryForm.reset();
     await selectJob(job.id);
   } catch (error) {
-    setGlobalError(`Could not create work entry. ${error.message}`);
+    setGlobalError(`No se pudo crear el parte de trabajo. ${error.message}`);
   }
 }
 
 async function createSupplyEntry(event) {
   event.preventDefault();
   const job = selectedJob();
-  if (!job) return setGlobalError("Select a job before creating a supply entry.");
+  if (!job) return setGlobalError("Selecciona un trabajo antes de crear un parte de suministros.");
 
   const formData = new FormData(el.supplyEntryForm);
   const date = formData.get("date");
   const supplier = formData.get("supplier")?.trim();
+  const reference = formData.get("reference")?.trim();
+  const totalAmount = normalizeNumber(formData.get("total_amount"));
+  const completion = normalizeNumber(formData.get("completion"));
+  const description = formData.get("description")?.trim();
 
-  if (!date || !supplier) return setGlobalError("Supply entry date and supplier are required.");
+  if (!date || !supplier || !reference || totalAmount === null || completion === null || !description) {
+    return setGlobalError(
+      "Fecha, proveedor, referencia, importe, estado y descripción son obligatorios para el parte de suministros.",
+    );
+  }
 
   const payload = {
     job_id: job.id,
     date,
     supplier,
-    reference: formData.get("reference")?.trim() || null,
-    total_amount: normalizeNumber(formData.get("total_amount")),
+    reference,
+    total_amount: totalAmount,
+    completion, // integer para el backend, texto solo en la interfaz
+    description,
   };
 
   try {
@@ -294,26 +363,26 @@ async function createSupplyEntry(event) {
     el.supplyEntryForm.reset();
     await selectJob(job.id);
   } catch (error) {
-    setGlobalError(`Could not create supply entry. ${error.message}`);
+    setGlobalError(`No se pudo crear el parte de suministros. ${error.message}`);
   }
 }
 
 async function deleteResource(resource, id, afterDelete) {
-  const confirmed = confirm("Delete this item? This cannot be undone.");
+  const confirmed = confirm("¿Eliminar este elemento? Esta acción no se puede deshacer.");
   if (!confirmed) return;
 
   try {
     await api(`/${resource}/${id}`, { method: "DELETE" });
     await afterDelete();
   } catch (error) {
-    setGlobalError(`Could not delete item. ${error.message}`);
+    setGlobalError(`No se pudo eliminar el elemento. ${error.message}`);
   }
 }
 
 async function editClient(client) {
-  const name = prompt("Client name", client.name || "");
+  const name = prompt("Nombre del cliente", client.name || "");
   if (name === null) return;
-  const address = prompt("Client address", client.address || "");
+  const address = prompt("Dirección del cliente", client.address || "");
   if (address === null) return;
 
   try {
@@ -323,26 +392,32 @@ async function editClient(client) {
     });
     await loadInitialData();
   } catch (error) {
-    setGlobalError(`Could not update client. ${error.message}`);
+    setGlobalError(`No se pudo actualizar el cliente. ${error.message}`);
   }
 }
 
 async function editJob(job) {
-  const title = prompt("Job title", job.title || "");
+  const title = prompt("Título del trabajo", job.title || "");
   if (title === null) return;
-  const description = prompt("Job description", job.description || "");
+  const description = prompt("Descripción del trabajo", job.description || "");
   if (description === null) return;
-  const status = prompt("Job status", job.status || "");
+  const statusPrompt = JOB_STATUS_OPTIONS.map((option) => `${option.id} = ${option.label}`).join("\n");
+  const status = prompt(`Estado del trabajo:\n${statusPrompt}`, job.status || "");
   if (status === null) return;
+
+  const statusId = normalizeNumber(status);
+  if (statusId === null || !JOB_STATUS_LABELS[String(statusId)]) {
+    return setGlobalError("Estado de trabajo inválido. Usa uno de los IDs disponibles.");
+  }
 
   try {
     await api(`/jobs/${job.id}`, {
       method: "PATCH",
-      body: JSON.stringify({ title: title.trim(), description: description.trim() || null, status: status.trim() }),
+      body: JSON.stringify({ title: title.trim(), description: description.trim() || null, status: statusId }),
     });
     await selectClient(state.selectedClientId);
   } catch (error) {
-    setGlobalError(`Could not update job. ${error.message}`);
+    setGlobalError(`No se pudo actualizar el trabajo. ${error.message}`);
   }
 }
 
@@ -363,16 +438,16 @@ function renderClients() {
       const jobsForClient = state.jobs.filter((job) => Number(job.client_id) === Number(client.id));
       return `
         <div class="item-card ${client.id === state.selectedClientId ? "selected" : ""}">
-          <button class="plain-card-button" data-action="select-client" data-id="${client.id}" aria-label="Select ${escapeHtml(client.name)}">
+          <button class="plain-card-button" data-action="select-client" data-id="${client.id}" aria-label="Seleccionar ${escapeHtml(client.name)}">
             <div class="item-title-row">
               <p class="item-title">${escapeHtml(client.name)}</p>
               <span class="pill">${jobsForClient.length}</span>
             </div>
-            <p class="item-meta">${escapeHtml(client.address || "No address")}</p>
+            <p class="item-meta">${escapeHtml(client.address || "Sin dirección")}</p>
           </button>
           <div class="card-actions">
-            <button class="button button-secondary button-small" data-action="edit-client" data-id="${client.id}">Edit</button>
-            <button class="button button-danger button-small" data-action="delete-client" data-id="${client.id}">Delete</button>
+            <button class="button button-secondary button-small" data-action="edit-client" data-id="${client.id}">Editar</button>
+            <button class="button button-danger button-small" data-action="delete-client" data-id="${client.id}">Eliminar</button>
           </div>
         </div>
       `;
@@ -386,16 +461,16 @@ function renderJobs() {
     .map(
       (job) => `
         <div class="item-card ${job.id === state.selectedJobId ? "selected" : ""}">
-          <button class="plain-card-button" data-action="select-job" data-id="${job.id}" aria-label="Select ${escapeHtml(job.title)}">
+          <button class="plain-card-button" data-action="select-job" data-id="${job.id}" aria-label="Seleccionar ${escapeHtml(job.title)}">
             <div class="item-title-row">
               <p class="item-title">${escapeHtml(job.title)}</p>
-              <span class="pill">${escapeHtml(job.status)}</span>
+              <span class="pill">${escapeHtml(jobStatusLabel(job.status))}</span>
             </div>
-            <p class="item-meta">${escapeHtml(job.description || "No description")}</p>
+            <p class="item-meta">${escapeHtml(job.description || "Sin descripción")}</p>
           </button>
           <div class="card-actions">
-            <button class="button button-secondary button-small" data-action="edit-job" data-id="${job.id}">Edit</button>
-            <button class="button button-danger button-small" data-action="delete-job" data-id="${job.id}">Delete</button>
+            <button class="button button-secondary button-small" data-action="edit-job" data-id="${job.id}">Editar</button>
+            <button class="button button-danger button-small" data-action="delete-job" data-id="${job.id}">Eliminar</button>
           </div>
         </div>
       `,
@@ -410,18 +485,18 @@ function renderJobDetails() {
   if (!job) {
     el.jobDetails.className = "detail-card empty-state";
     el.jobDetails.textContent = state.selectedClientId
-      ? "Select a job to see details, work entries, and supply entries."
-      : "Select a client, then select a job to see entries.";
+      ? "Selecciona un trabajo para ver detalles, partes de trabajo y partes de suministros."
+      : "Selecciona un cliente y después un trabajo para ver los partes.";
     return;
   }
 
   el.jobDetails.className = "detail-card";
   el.jobDetails.innerHTML = `
     <dl>
-      <dt>Title</dt><dd>${escapeHtml(job.title)}</dd>
-      <dt>Client</dt><dd>${escapeHtml(client?.name || `#${job.client_id}`)}</dd>
-      <dt>Status</dt><dd>${escapeHtml(job.status)}</dd>
-      <dt>Description</dt><dd>${escapeHtml(job.description || "—")}</dd>
+      <dt>Título</dt><dd>${escapeHtml(job.title)}</dd>
+      <dt>Cliente</dt><dd>${escapeHtml(client?.name || `#${job.client_id}`)}</dd>
+      <dt>Estado</dt><dd>${escapeHtml(jobStatusLabel(job.status))}</dd>
+      <dt>Descripción</dt><dd>${escapeHtml(job.description || "—")}</dd>
     </dl>
   `;
 }
@@ -430,12 +505,12 @@ function renderEntries() {
   el.workEntries.innerHTML = renderTable({
     rows: state.workEntries,
     columns: [
-      ["date", "Date"],
-      ["title", "Title"],
-      ["location", "Location"],
-      ["num_workers", "Workers"],
-      ["hours_per_worker", "Hours / worker"],
-      ["description", "Description"],
+      ["date", "Fecha"],
+      ["title", "Título"],
+      ["location", "Ubicación"],
+      ["num_workers", "Trabajadores"],
+      ["hours_per_worker", "Horas / trabajador"],
+      ["description", "Descripción"],
     ],
     resource: "work-entries",
   });
@@ -443,27 +518,34 @@ function renderEntries() {
   el.supplyEntries.innerHTML = renderTable({
     rows: state.supplyEntries,
     columns: [
-      ["date", "Date"],
-      ["supplier", "Supplier"],
-      ["reference", "Reference"],
-      ["total_amount", "Amount"],
+      ["date", "Fecha"],
+      ["supplier", "Proveedor"],
+      ["reference", "Referencia"],
+      ["total_amount", "Importe"],
+      ["completion", "Estado", completionLabel],
+      ["description", "Descripción"],
     ],
     resource: "supply-entries",
   });
 }
 
 function renderTable({ rows, columns, resource }) {
-  if (!state.selectedJobId) return `<div class="empty-state">Select a job first.</div>`;
-  if (!rows.length) return `<div class="empty-state">No entries yet.</div>`;
+  if (!state.selectedJobId) return `<div class="empty-state">Selecciona primero un trabajo.</div>`;
+  if (!rows.length) return `<div class="empty-state">Todavía no hay partes.</div>`;
 
   const header = columns.map(([, label]) => `<th>${escapeHtml(label)}</th>`).join("");
   const body = rows
     .map(
       (row) => `
         <tr>
-          ${columns.map(([key]) => `<td>${escapeHtml(row[key] ?? "—")}</td>`).join("")}
+          ${columns
+            .map(([key, , formatter]) => {
+              const value = formatter ? formatter(row[key], row) : row[key];
+              return `<td>${escapeHtml(value ?? "—")}</td>`;
+            })
+            .join("")}
           <td>
-            <button class="button button-danger button-small" data-action="delete-entry" data-resource="${resource}" data-id="${row.id}">Delete</button>
+            <button class="button button-danger button-small" data-action="delete-entry" data-resource="${resource}" data-id="${row.id}">Eliminar</button>
           </td>
         </tr>
       `,
@@ -472,7 +554,7 @@ function renderTable({ rows, columns, resource }) {
 
   return `
     <table>
-      <thead><tr>${header}<th>Actions</th></tr></thead>
+      <thead><tr>${header}<th>Acciones</th></tr></thead>
       <tbody>${body}</tbody>
     </table>
   `;
@@ -510,7 +592,7 @@ el.loginForm.addEventListener("submit", (event) => {
     return;
   }
 
-  el.loginError.textContent = "Incorrect password.";
+  el.loginError.textContent = "Contraseña incorrecta.";
 });
 
 el.logoutButton.addEventListener("click", () => {
@@ -533,6 +615,9 @@ el.clientsList.addEventListener("click", handleListClick);
 el.jobsList.addEventListener("click", handleListClick);
 el.workEntries.addEventListener("click", handleListClick);
 el.supplyEntries.addEventListener("click", handleListClick);
+
+renderJobStatusOptions();
+renderCompletionOptions();
 
 setFormEnabled(el.jobForm, false);
 setFormEnabled(el.workEntryForm, false);

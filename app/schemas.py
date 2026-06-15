@@ -14,13 +14,13 @@ class JobCreate(BaseModel):
     client_id: int
     title: str
     description: str | None = None
-    status: str
+    status: int
 
 class JobUpdate(BaseModel):
     client_id: int | None = None
     title: str | None = None
     description: str | None = None
-    status: str | None = None
+    status: int | None = None
 
 class WorkEntryCreate(BaseModel):
     job_id: int
@@ -43,9 +43,11 @@ class WorkEntryUpdate(BaseModel):
 class SupplyEntryCreate(BaseModel):
     job_id: int
     supplier: str
-    reference: str | None = None
-    total_amount: Decimal | None = None
-    date: datetime.date | None = None
+    reference: str 
+    total_amount: Decimal 
+    date: datetime.date 
+    completion: int 
+    description: str 
 
 class SupplyEntryUpdate(BaseModel):
     job_id: int | None = None
@@ -53,3 +55,5 @@ class SupplyEntryUpdate(BaseModel):
     reference: str | None = None
     total_amount: Decimal | None = None
     date: datetime.date | None = None
+    completion: int | None = None
+    description: str | None = None

@@ -1,18 +1,19 @@
+import os
 from sqlalchemy import create_engine
-from sqlalchemy.orm import DeclarativeBase, sessionmaker
+from sqlalchemy.orm import sessionmaker, DeclarativeBase
 
-DATABASE_URL = "postgresql+psycopg://office_user:0000@localhost/office_db" #The address SQLAlchemy uses to connect to PostgreSQL
+DATABASE_URL = os.getenv(
+    "DATABASE_URL",
+    "postgresql+psycopg://office_user:0000@localhost/office_db"
+)
 
-class Base(DeclarativeBase): #Common parent for all tables
+engine = create_engine(DATABASE_URL)
+
+SessionLocal = sessionmaker(
+    autocommit=False,
+    autoflush=False,
+    bind=engine,
+)
+
+class Base(DeclarativeBase):
     pass
-
-engine = create_engine(DATABASE_URL, echo=True) #Connection machinery 
-
-SessionLocal = sessionmaker(bind=engine, autoflush=False, autocommit=False) #To do things with rows
-
-def get_db(): #Opens a session and closes it afterwards. Modifications must be done inside a session
-    db = SessionLocal()
-    try:
-        yield db #create resource, use it and clean up
-    finally:
-        db.close()
